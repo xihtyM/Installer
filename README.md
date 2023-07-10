@@ -53,3 +53,10 @@ int main(void)
     return 0;
 }
 ```
+
+# Compiling
+
+- You must link install.c with your main file, that is easily done by running `compiler main.c install.c flags`.
+- You must link the library urlmon like: `compiler ... -lurlmon`.
+
+> Replace compiler with your compiler (e.g. "gcc" for gcc or "clang" for clang).
