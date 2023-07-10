@@ -1,14 +1,23 @@
 #include "install.h"
-#include <stdio.h>
 
 int main(void)
 {
-    InstallPath *ip = init_install("xihtyM/Pang/main", NULL);
+    char repo[64];
+    char files[64];
+
+    printf("Enter your repository: ");
+    scanf("%63s[^\n]", repo);
+
+    printf("Enter the name of the text file with your files: ");
+    scanf("%63s[^\n]", files);
+
+    InstallPath *ip = init_install(repo, files); // CREATE InstallPath STRUCT
 
     if (!ip)
-        exit(1);
-    
-    install_files(ip, "test");
+        return 1; // CHECK IF ANY ERRORS OCCURRED
+
+    //install_files(ip, "folder name"); // Install into folder.
+    install_files(ip, NULL); // Install into current working directory.
 
     finish_install(ip);
 
