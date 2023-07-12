@@ -11,7 +11,8 @@
 /// @brief Downloads data from a url into the file.
 /// @param url url to download data from.
 /// @param file path of file to be downloaded (including the filename) - directory must be valid.
-void _download(
+/// @return Nonzero on failure.
+int16_t _download(
     const char *url,
     const char *file);
 
@@ -53,16 +54,7 @@ char *read_files_dat(
 /// @param path the path of installation - NULL indicates the current working directory.
 /// @return Nonzero on failure.
 /// @warning The path must be a valid path, otherwise the files will not be downloaded.
-int install_files(
-    InstallPath *ip,
-    const char *path);
-
-
-/// @brief Installs files from ip struct into path.
-/// @param ip pointer to InstallPath struct.
-/// @param path the directory to be installed into.
-/// @return Nonzero on failure.
-int install_files(
+int16_t install_files(
     InstallPath *ip,
     const char *path);
 

@@ -7,13 +7,13 @@
 // the count will always be 1 more than there actually is because of this comment.
 
 
-void _download(
+int16_t _download(
     const char *url,
     const char *file)
 {
     HRESULT hr;
 
-    printf("Installing: %s, %s\n", url, file);
+    printf("Installing: %s from %s\n", file, url);
 
     hr = URLDownloadToFileA(
         NULL,
@@ -22,13 +22,16 @@ void _download(
         BINDF_GETNEWESTVERSION,
         NULL);
 
+    // error whilst downloading
     if (hr != S_OK)
     {
         printf(hr == E_OUTOFMEMORY
          ? "Error: Not enough memory to download file.\n"
          : "Error: URL is not valid, please make sure you are using the latest installer.\n");
-        exit(1);
+        return 1;
     }
+
+    return 0;
 }
 
 
@@ -40,27 +43,32 @@ char *getline(
     int32_t start = 0;
     int32_t length = 0;
 
-    for (; str[start] != 0 && line > 0; start++)
+    // get the index of the nth newline - or the null
+    // terminator if n is larger than the number of newlines
+    for (; str[start] && line > 0; start++)
     {
         if (str[start] == '\n')
             line--;
     }
 
-    if (str[start] == 0)
-        return ""; // Return blank string because there are not enough lines.
+    if (!str[start])
+        return ""; // End of file, just return empty string.
 
-    for (; str[start + length] != '\n' && str[start + length] != 0; length++) {}
+    // get the length of the line substring and store it in length
+    for (; str[start + length] != '\n' && str[start + length]; length++) {}
 
     split = malloc(length + 1); // _ALLOCATION
 
     if (!split)
         return ""; // terminates installation -- TODO: catch
 
+    // copy the substring into split
     for (int32_t index = 0; index < length; index++)
     {
         split[index] = str[index + start];
     }
 
+    // null terminator
     split[length] = 0;
 
     return split;
@@ -71,9 +79,11 @@ InstallPath *init_install(
     char *url,
     const char *files)
 {
+    // url cannot be null
     if (!url)
         return NULL;
 
+    // url with https://raw.githubusercontent.com/ behind it
     char *full_url = malloc(strlen(url) + RAWLEN + 1); // _ALLOCATION
 
     strcpy(full_url, RAW);
@@ -95,6 +105,7 @@ InstallPath *init_install(
 char *read_files_dat(
     InstallPath *ip)
 {
+    // url = ip->url + "/" + ip->files
     char *url = malloc(strlen(ip->url) + strlen(ip->files) + 2); // _ALLOCATION
 
     if (!url)
@@ -104,34 +115,39 @@ char *read_files_dat(
     strcat(url, "/");
     strcat(url, ip->files);
 
-    _download(url, ip->files);
+    // downloads contents of file into ip->files
+    // returns null if couldn't download file
+    if (_download(url, ip->files))
+        return NULL;
+    
     free(url); // _FREED BLOCK
 
+    // after downloading, we still need to read the content - open the downloaded file.
     FILE *fp = fopen(ip->files, "r");
 
     if (!fp)
         return NULL;
 
     fseek(fp, 0, SEEK_END);
-    long fsize = ftell(fp);
+    long filesize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *files = malloc(fsize + 1); // _ALLOCATION
+    char *files = malloc(filesize + 1); // _ALLOCATION
 
     if (!files)
         return NULL;
 
-    fread(files, fsize, 1, fp);
+    fread(files, filesize, 1, fp);
     fclose(fp);
     remove(ip->files);
 
-    files[fsize] = 0;
+    files[filesize] = 0;
 
     return files;
 }
 
 
-int32_t install_files(
+int16_t install_files(
     InstallPath *ip,
     const char *path)
 {
@@ -171,13 +187,17 @@ int32_t install_files(
             strcat(full_path, filename);
 
             remove(full_path);
-            _download(url, full_path);
+
+            if (_download(url, full_path))
+                return 1;
             free(full_path); // _FREED BLOCK
         }
         else
         {
             remove(filename);
-            _download(url, filename);
+
+            if (_download(url, filename))
+                return 1;
         }
 
         free(filename); // _FREED BLOCK
