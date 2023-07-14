@@ -73,6 +73,10 @@ int16_t install_files(
     const char *path);
 
 
+/// @brief Gets the line at the given index.
+/// @param str the string that is split.
+/// @param line the line number.
+/// @return The substring of the nth line. Empty string on failure or end of file.
 inline char *getline(
     char *str,
     uint32_t line)
