@@ -35,9 +35,10 @@ int16_t _download(
 }
 
 
-char *getline(
+char *split(
     char *str,
-    uint32_t line)
+    uint32_t index,
+    char delim)
 {
     char *split;
     int32_t start = 0;
@@ -45,17 +46,17 @@ char *getline(
 
     // get the index of the nth newline - or the null
     // terminator if n is larger than the number of newlines
-    for (; str[start] && line > 0; start++)
+    for (; str[start] && index > 0; start++)
     {
-        if (str[start] == '\n')
-            line--;
+        if (str[start] == delim)
+            index--;
     }
 
     if (!str[start])
         return ""; // End of file, just return empty string.
 
     // get the length of the line substring and store it in length
-    for (; str[start + length] != '\n' && str[start + length]; length++) {}
+    for (; str[start + length] != delim && str[start + length]; length++) {}
 
     split = malloc(length + 1); // _ALLOCATION
 
@@ -209,11 +210,58 @@ int16_t install_files(
     return 0;
 }
 
-void finish_install(
-    InstallPath *ip)
-{
-    free(ip->url); // _FREED BLOCK
-    free(ip);      // _FREED BLOCK
 
-    ip = NULL;
+int mkalldirs(char *path)
+{
+    uint16_t sub = 0;
+    char *dir = malloc(strlen(path) + 1); // _ALLOCATION
+    strcpy(dir, split(path, sub++, '\\'));
+
+    if (mkdir(dir) != 0 && errno != EEXIST)
+        return -1;
+
+    while (strcmp(path, dir) != 0)
+    {
+        strcat(dir, "\\"); // add backslash for next path
+        strcat(dir, split(path, sub++, '\\'));
+
+        if (mkdir(dir) != 0 && errno != EEXIST)
+            return -1;
+    }
+
+    free(dir); // _FREED BLOCK
+    return 0;
+}
+
+
+int16_t install(
+    char *url,
+    const char *files,
+    char *path)
+{
+    InstallPath *ip = init_install(url, files);
+
+    if (!ip)
+        return 1; // init failed due to memory error (most likely)
+    
+    // only check if path is not null, the current working
+    // directory is guaranteed to exist so no need for check
+    if (path) {
+        struct stat fileinfo;
+
+        if (stat(path, &fileinfo) < 0 || !S_ISDIR(fileinfo.st_mode))
+        {
+            // doesn't exist or is not a directory
+            // either way we make a new directory
+            if (mkalldirs(path) != 0)
+                return 2; // failed to create directory
+        }
+    }
+
+    if (install_files(ip, path))
+        return 3; // could not install files into directory
+    
+    finish_install(ip);
+
+    return 0;
 }

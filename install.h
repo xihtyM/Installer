@@ -1,7 +1,19 @@
+#pragma once
+
 #include <urlmon.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sys/stat.h>
+
+
+// define S_ISREG and S_ISDIR for compatibility
+#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
 
 
 #define RAW "https://raw.githubusercontent.com/"
@@ -17,13 +29,15 @@ int16_t _download(
     const char *file);
 
 
-/// @brief Gets the line at the given index.
+/// @brief Gets the substring at the given index.
 /// @param str the string that is split.
-/// @param line the line number.
-/// @return The substring of the nth line. Empty string on failure or end of file.
-char *getline(
+/// @param index the nth index.
+/// @param delim the delimiter.
+/// @return The substring of the nth substring delimited by delim. Empty string on failure or end of file.
+char *split(
     char *str,
-    uint32_t line);
+    uint32_t index,
+    char delim);
 
 
 typedef struct InstallPath
@@ -59,7 +73,30 @@ int16_t install_files(
     const char *path);
 
 
+inline char *getline(
+    char *str,
+    uint32_t line)
+{
+    return split(str, line, '\n');
+}
+
+
 /// @brief Frees InstallPath struct and sets it to NULL.
 /// @param ip pointer to InstallPath struct.
-void finish_install(
-    InstallPath *ip);
+inline void finish_install(
+    InstallPath *ip)
+{
+    free(ip->url); // _FREED BLOCK
+    free(ip);      // _FREED BLOCK
+}
+
+
+/// @brief Higher level function for general installation of files from github repository.
+/// @param url in the syntax "github username/repo/branch" (for example "xihtyM/Pang/main").
+/// @param files the name of the text file inside the repo containing every file to be downloaded (seperated by newlines).
+/// @param path the directory to install into (if the directory is invalid, a new directory will be created).
+/// @return Nonzero on failure.
+int16_t install(
+    char *url,
+    const char *files,
+    char *path);
