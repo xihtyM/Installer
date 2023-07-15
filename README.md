@@ -39,7 +39,7 @@ int main(void)
 }
 ```
 
-A typical low level installer might look like this. (repo and files may be pre-defined) - it is recommended to use the high-level isntall function in most cases.
+A typical low level installer might look like this. (repo and files may be pre-defined) - it is recommended to use the high-level install function in most cases.
 
 ```c
 #include "install.h"
